@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Drawing;
 using System.Linq.Expressions;
 using System.Security.Cryptography;
@@ -76,27 +77,26 @@ public class FABRIK : MonoBehaviour
     /// <param name="p3"></param>
     /// <returns>newP1</returns>
     Vector3 DoAngleConstraints(Vector3 p1, Vector3 p2, Vector3 p3) {
-        Vector3 newP1 = p1;
-
         Vector3 v1 = p1 - p2;
         Vector3 v2 = p2 - p3;
-
 
         float a = AngleConstraintHelper(maxAngles[0].x, maxAngles[0].y, v1, v2);
 
         Vector3 cross = Vector3.Cross(v1, v2);
 
-        float dist = Vector3.Distance(p1, p3);
-        if (a > 90 || cross.z < 0) {
+        if (a > 90) {
             Debug.Log("Constrained   " + cross * 100);
+            Vector3 constrainedDir = Quaternion.Euler(0, 0, -maxAngles[0].x) * v2;
+            Vector3 constrainedPoint = p2 + constrainedDir * Vector3.Distance(p1, p2);
+            return constrainedPoint;
+        } else if (cross.z < 0) {
+            Vector3 constrainedDir = Quaternion.Euler(0, 0, 0) * v2;
+            Vector3 constrainedPoint = p2 + constrainedDir * Vector3.Distance(p1, p2);
+            return constrainedPoint;
         } else {
             Debug.Log("NoConstraints " + cross);
+            return p1;
         }
-
-
-        // Debug.Log(dist);
-
-        return newP1;
     }
 
     void SegmentLocationRotation() {
@@ -172,7 +172,7 @@ public class FABRIK : MonoBehaviour
                     iterationMaxTracker = curIter;
                 }
             }
-            DoAngleConstraints(joints[numJoints - 1].localPosition, joints[numJoints - 2].localPosition, joints[numJoints - 3].localPosition);
+            joints[numJoints - 1].localPosition = DoAngleConstraints(joints[numJoints - 1].localPosition, joints[numJoints - 2].localPosition, joints[numJoints - 3].localPosition);
         }
 
         activeArmLength = 0;
