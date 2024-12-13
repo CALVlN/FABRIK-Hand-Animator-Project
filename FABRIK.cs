@@ -180,12 +180,6 @@ public class FABRIK : MonoBehaviour
             activeArmLength += Vector3.Distance(joints[i].localPosition, joints[i + 1].localPosition);
         }
 
-        // Debug.Log("localPosition: (" + this.transform.localPosition.x + " " + this.transform.localPosition.y + " " + this.transform.localPosition.z + ") localRotation: ("
-        // + this.transform.localRotation.x + " " + this.transform.localRotation.y + " " + this.transform.localRotation.z + ")");
-        // int ind = numJoints - 1;
-        // Debug.Log("LocalPosJoint: (" + joints[ind].transform.localPosition.x + " " + joints[ind].transform.localPosition.y + " " + joints[ind].transform.localPosition.z +
-        // ") localRotation: (" + joints[ind].transform.localRotation.x + " " + joints[ind].transform.localRotation.y + " " + joints[ind].transform.localRotation.z + ")");
-
         SegmentLocationRotation();
     }
 }
