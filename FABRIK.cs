@@ -38,9 +38,6 @@ public class FABRIK : MonoBehaviour
             Transform curTransform = joints[i];
             Transform nextTransform = joints[i + 1];
 
-            Vector3 newPos = new Vector3(joints[i].localPosition.x, joints[i].localPosition.y, 0);
-            joints[i].localPosition = newPos;
-
             distances[i] = Vector3.Distance(nextTransform.position, curTransform.position);
             armLength += distances[i];
 
@@ -84,6 +81,7 @@ public class FABRIK : MonoBehaviour
         Vector3 v1 = p1 - p2;
         Vector3 v2 = p2 - p3;
 
+
         float a = AngleConstraintHelper(maxAngles[0].x, maxAngles[0].y, v1, v2);
 
         Vector3 cross = Vector3.Cross(v1, v2);
@@ -112,17 +110,20 @@ public class FABRIK : MonoBehaviour
 
     // Update is called once per frame
     void Update() {
-        float distToTarget = Vector3.Distance(target.position, joints[0].position);
+        Vector3 tProjPos = new Vector3(target.position.x, target.position.y, 0);
+        Vector3 rootProjPos = new Vector3(joints[0].position.x, joints[0].position.y, 0);
+        float distToTarget = Vector3.Distance(tProjPos, rootProjPos);
         // Target unreachable
         if (distToTarget > armLength) {
             for (int i = 0; i < numJoints - 1; i++) {
                 // Distance between point and target
-                float ri = Vector3.Distance(target.localPosition, joints[i].localPosition);
+                Vector3 jProjPos = new Vector3(joints[i].position.x, joints[i].position.y, 0);
+                float ri = Vector3.Distance(tProjPos, jProjPos);
                 float lamb = distances[i] / ri;
-                float newX = (1 - lamb) * joints[i].localPosition[0] + lamb * target.localPosition[0];
-                float newY = (1 - lamb) * joints[i].localPosition[1] + lamb * target.localPosition[1];
-                // float newZ = (1 - lamb) * joints[i].localPosition[2] + lamb * target.localPosition[2];
-                joints[i + 1].localPosition = new Vector3(newX, newY, 0);
+                float newX = (1 - lamb) * joints[i].position[0] + lamb * target.position[0];
+                float newY = (1 - lamb) * joints[i].position[1] + lamb * target.position[1];
+                float newZ = (1 - lamb) * joints[i].position[2] + lamb * target.position[2];
+                joints[i + 1].position = new Vector3(newX, newY, this.transform.position.z);
             }
         } // Target is reachable
         else {
