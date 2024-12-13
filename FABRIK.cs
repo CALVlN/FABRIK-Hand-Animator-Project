@@ -38,7 +38,7 @@ public class FABRIK : MonoBehaviour
             Transform curTransform = joints[i];
             Transform nextTransform = joints[i + 1];
 
-            distances[i] = Vector3.Distance(nextTransform.position, curTransform.position);
+            distances[i] = Vector3.Distance(nextTransform.localPosition, curTransform.localPosition);
             armLength += distances[i];
 
             maxAngles[i] = new Vector4(90, 0, 90, 0);
@@ -101,83 +101,83 @@ public class FABRIK : MonoBehaviour
 
     void SegmentLocationRotation() {
         for (int i = 0; i < numJoints - 1; i++) {
-            Vector3 position = (joints[i].position + joints[i + 1].position) / 2f;
-            Quaternion rotation = Quaternion.LookRotation(joints[i].position - joints[i + 1].position, Vector3.forward);
-            segments[i].position = position;
+            Vector3 position = (joints[i].localPosition + joints[i + 1].localPosition) / 2f;
+            Quaternion rotation = Quaternion.LookRotation(joints[i].localPosition - joints[i + 1].localPosition, Vector3.forward);
+            segments[i].localPosition = position;
             segments[i].rotation = rotation;
         }
     }
 
     // Update is called once per frame
     void Update() {
-        Vector3 tProjPos = new Vector3(target.position.x, target.position.y, 0);
-        Vector3 rootProjPos = new Vector3(joints[0].position.x, joints[0].position.y, 0);
+        Vector3 tProjPos = new Vector3(target.localPosition.x, target.localPosition.y, 0);
+        Vector3 rootProjPos = new Vector3(joints[0].localPosition.x, joints[0].localPosition.y, 0);
         float distToTarget = Vector3.Distance(tProjPos, rootProjPos);
         // Target unreachable
         if (distToTarget > armLength) {
             for (int i = 0; i < numJoints - 1; i++) {
                 // Distance between point and target
-                Vector3 jProjPos = new Vector3(joints[i].position.x, joints[i].position.y, 0);
+                Vector3 jProjPos = new Vector3(joints[i].localPosition.x, joints[i].localPosition.y, 0);
                 float ri = Vector3.Distance(tProjPos, jProjPos);
                 float lamb = distances[i] / ri;
-                float newX = (1 - lamb) * joints[i].position[0] + lamb * target.position[0];
-                float newY = (1 - lamb) * joints[i].position[1] + lamb * target.position[1];
-                float newZ = (1 - lamb) * joints[i].position[2] + lamb * target.position[2];
-                joints[i + 1].position = new Vector3(newX, newY, this.transform.position.z);
+                float newX = (1 - lamb) * joints[i].localPosition[0] + lamb * target.localPosition[0];
+                float newY = (1 - lamb) * joints[i].localPosition[1] + lamb * target.localPosition[1];
+                float newZ = (1 - lamb) * joints[i].localPosition[2] + lamb * target.localPosition[2];
+                joints[i + 1].localPosition = new Vector3(newX, newY, 0);
             }
         } // Target is reachable
         else {
             int maxIter = 32;
             int curIter = 0;
-            Vector3 targetPos = target.position;
-            Vector3 initialRootPos = joints[0].position;
-            Vector3 endEffectorPos = joints[numJoints - 1].position;
+            Vector3 targetPos = target.localPosition;
+            Vector3 initialRootPos = joints[0].localPosition;
+            Vector3 endEffectorPos = joints[numJoints - 1].localPosition;
 
             // PROJECT TARGET ONTO XY PLANE
-            targetPos.z = this.transform.position.z;
+            targetPos.z = 0;
 
             float difA = Vector3.Distance(endEffectorPos, targetPos);
             while (difA > tolerance && curIter < maxIter) {
                 // Forward part
-                joints[numJoints - 1].position = targetPos;
+                joints[numJoints - 1].localPosition = targetPos;
                 for (int i = numJoints - 2; i > 0; i--) {
-                    float ri = Vector3.Distance(joints[i + 1].position, joints[i].position);
+                    float ri = Vector3.Distance(joints[i + 1].localPosition, joints[i].localPosition);
                     float lamb = distances[i] / ri;
 
-                    joints[i].position = (1 - lamb) * joints[i + 1].position + lamb * joints[i].position;
+                    joints[i].localPosition = (1 - lamb) * joints[i + 1].localPosition + lamb * joints[i].localPosition;
 
-                    float angle = Vector3.Angle(joints[i].position, joints[i + 1].position);
+                    float angle = Vector3.Angle(joints[i].localPosition, joints[i + 1].localPosition);
                     // Debug.Log("Forward angles " + angle);
                 }
                 // Backward part
-                joints[0].position = initialRootPos;
+                joints[0].localPosition = initialRootPos;
                 for (int i = 0; i < numJoints - 2; i++) {
-                    float ri = Vector3.Distance(joints[i + 1].position, joints[i].position);
+                    float ri = Vector3.Distance(joints[i + 1].localPosition, joints[i].localPosition);
                     float lamb = distances[i] / ri;
 
-                    joints[i + 1].position = (1 - lamb) * joints[i].position + lamb * joints[i + 1].position;
-                    Vector3 savedPos = joints[i + 1].position;
+                    joints[i + 1].localPosition = (1 - lamb) * joints[i].localPosition + lamb * joints[i + 1].localPosition;
+                    Vector3 savedPos = joints[i + 1].localPosition;
                     Quaternion savedRot = joints[i + 1].rotation;
-                    joints[i].forward = (joints[i].position - joints[i + 1].position).normalized;
-                    joints[i + 1].transform.position = savedPos;
+                    joints[i].forward = (joints[i].localPosition - joints[i + 1].localPosition).normalized;
+                    joints[i + 1].transform.localPosition = savedPos;
                     joints[i + 1].transform.rotation = savedRot;
 
-                    float angle = Vector3.Angle(joints[i].position - joints[i + 1].position, joints[i].position - joints[i + 2].position);
+                    float angle = Vector3.Angle(joints[i].localPosition - joints[i + 1].localPosition, joints[i].localPosition - joints[i + 2].localPosition);
                     // Debug.Log("Backward part " + angle);
                 }
 
-                difA = Vector3.Distance(joints[numJoints - 1].position, targetPos);
+                difA = Vector3.Distance(joints[numJoints - 1].localPosition, targetPos);
                 curIter++;
                 if (curIter > iterationMaxTracker) {
                     iterationMaxTracker = curIter;
                 }
             }
-            DoAngleConstraints(joints[numJoints - 1].position, joints[numJoints - 2].position, joints[numJoints - 3].position);
+            DoAngleConstraints(joints[numJoints - 1].localPosition, joints[numJoints - 2].localPosition, joints[numJoints - 3].localPosition);
         }
 
         activeArmLength = 0;
         for (int i = 0; i < numJoints - 1; i++) {
-            activeArmLength += Vector3.Distance(joints[i].position, joints[i + 1].position);
+            activeArmLength += Vector3.Distance(joints[i].localPosition, joints[i + 1].localPosition);
         }
 
         // Debug.Log("localPosition: (" + this.transform.localPosition.x + " " + this.transform.localPosition.y + " " + this.transform.localPosition.z + ") localRotation: ("
