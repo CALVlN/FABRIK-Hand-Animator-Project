@@ -26,12 +26,17 @@ public class FABRIK : MonoBehaviour
     public float activeArmLength;
     public float iterationMaxTracker = 0;
 
+    public GameObject targetItem;
+
+    Vector3 initialEndEffectorWorldPos;
+
     // Start is called before the first frame update
     void Start() {
         numJoints = joints.Length;
         distances = new float[numJoints];
         maxAngles = new Vector4[numJoints];
         palmNormal = -this.transform.up;
+        initialEndEffectorWorldPos = joints[numJoints - 1].position;
 
         // ASSUMES JOINTS WERE SET IN EDITOR
         armLength = 0;
@@ -85,7 +90,7 @@ public class FABRIK : MonoBehaviour
         Vector3 cross = Vector3.Cross(v1, v2);
 
         if (a > 90) {
-            Debug.Log("Constrained   " + cross * 100);
+            // Debug.Log("Constrained   " + cross * 100);
             Vector3 constrainedDir = Quaternion.Euler(0, 0, -maxAngles[0].x) * v2;
             Vector3 constrainedPoint = p2 + constrainedDir * Vector3.Distance(p1, p2);
             return constrainedPoint;
@@ -94,7 +99,7 @@ public class FABRIK : MonoBehaviour
             Vector3 constrainedPoint = p2 + constrainedDir * Vector3.Distance(p1, p2);
             return constrainedPoint;
         } else {
-            Debug.Log("NoConstraints " + cross);
+            // Debug.Log("NoConstraints " + cross);
             return p1;
         }
     }
@@ -102,14 +107,36 @@ public class FABRIK : MonoBehaviour
     void SegmentLocationRotation() {
         for (int i = 0; i < numJoints - 1; i++) {
             Vector3 position = (joints[i].localPosition + joints[i + 1].localPosition) / 2f;
-            Quaternion rotation = Quaternion.LookRotation(joints[i].localPosition - joints[i + 1].localPosition, Vector3.forward);
+            Quaternion rotation = Quaternion.LookRotation(joints[i].localPosition - joints[i + 1].localPosition, Vector3.up);
+            Quaternion rotatedRotation = rotation * Quaternion.Euler(90f, 0f, 0f);
             segments[i].localPosition = position;
-            segments[i].rotation = rotation;
+            segments[i].localRotation = rotatedRotation;
+        }
+    }
+
+    void UpdateTargetPositions() {
+        if (targetItem != null) {
+            Vector3 rStart = initialEndEffectorWorldPos;
+            rStart.y += 0.1f;
+            Vector3 localDir = transform.InverseTransformPoint(targetItem.transform.position) - transform.InverseTransformPoint(rStart);
+            localDir.z = 0;
+            Vector3 rDir = transform.TransformDirection(localDir.normalized);
+            float maxDist = 300f;
+            RaycastHit hit;
+            if (Physics.Raycast(rStart, rDir, out hit, maxDist)) {
+                Debug.Log($"Hit {hit.collider.gameObject.name} at {hit.point}");
+                target.position = hit.point;
+            } else {
+                Debug.Log("No object hit.");
+            }
+            Debug.DrawRay(rStart, rDir * maxDist, UnityEngine.Color.green);
         }
     }
 
     // Update is called once per frame
     void Update() {
+        UpdateTargetPositions();
+
         Vector3 tProjPos = new Vector3(target.localPosition.x, target.localPosition.y, 0);
         Vector3 rootProjPos = new Vector3(joints[0].localPosition.x, joints[0].localPosition.y, 0);
         float distToTarget = Vector3.Distance(tProjPos, rootProjPos);
