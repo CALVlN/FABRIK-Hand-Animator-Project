@@ -29,6 +29,7 @@ public class FABRIK : MonoBehaviour
     public GameObject targetItem;
 
     Vector3 initialEndEffectorWorldPos;
+    Vector3 initialTargetWorldPos;
 
     // Start is called before the first frame update
     void Start() {
@@ -37,6 +38,7 @@ public class FABRIK : MonoBehaviour
         maxAngles = new Vector4[numJoints];
         palmNormal = -this.transform.up;
         initialEndEffectorWorldPos = joints[numJoints - 1].position;
+        initialTargetWorldPos = target.position;
 
         // ASSUMES JOINTS WERE SET IN EDITOR
         armLength = 0;
@@ -125,7 +127,12 @@ public class FABRIK : MonoBehaviour
             RaycastHit hit;
             if (Physics.Raycast(rStart, rDir, out hit, maxDist)) {
                 Debug.Log($"Hit {hit.collider.gameObject.name} at {hit.point}");
-                target.position = hit.point;
+                if (hit.transform.parent.name.Equals("Items")) {
+                    target.position = hit.point;
+                } else {
+                    target.position = initialTargetWorldPos;
+                }
+
             } else {
                 Debug.Log("No object hit.");
             }
@@ -140,8 +147,16 @@ public class FABRIK : MonoBehaviour
         Vector3 tProjPos = new Vector3(target.localPosition.x, target.localPosition.y, 0);
         Vector3 rootProjPos = new Vector3(joints[0].localPosition.x, joints[0].localPosition.y, 0);
         float distToTarget = Vector3.Distance(tProjPos, rootProjPos);
+        // Reset joints and target position while object is being rotated
+        if (Input.GetMouseButton(0)) {
+            target.position = initialTargetWorldPos;
+            Vector3 direction = (target.localPosition - joints[0].localPosition).normalized;
+            for (int i = 1; i < numJoints; i++) {
+                joints[i].localPosition = joints[i - 1].localPosition + direction * distances[i - 1];
+            }
+        }
         // Target unreachable
-        if (distToTarget > armLength) {
+        else if (distToTarget > armLength) {
             for (int i = 0; i < numJoints - 1; i++) {
                 // Distance between point and target
                 Vector3 jProjPos = new Vector3(joints[i].localPosition.x, joints[i].localPosition.y, 0);
@@ -199,7 +214,7 @@ public class FABRIK : MonoBehaviour
                     iterationMaxTracker = curIter;
                 }
             }
-            joints[numJoints - 1].localPosition = DoAngleConstraints(joints[numJoints - 1].localPosition, joints[numJoints - 2].localPosition, joints[numJoints - 3].localPosition);
+            // joints[numJoints - 1].localPosition = DoAngleConstraints(joints[numJoints - 1].localPosition, joints[numJoints - 2].localPosition, joints[numJoints - 3].localPosition);
         }
 
         activeArmLength = 0;

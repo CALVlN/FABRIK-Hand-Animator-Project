@@ -20,6 +20,23 @@ public class ItemManager : MonoBehaviour {
         if (Input.GetKeyDown(KeyCode.Space)) {
             StartCoroutine(SwitchToNextChild());
         }
+
+        // Object rotates with mouse when left click held down
+        if (Input.GetMouseButton(0)) {
+            UpdateRotationWithMouse();
+        }
+
+        // Quit on escape
+        if (Input.GetKeyDown(KeyCode.Escape)) {
+            Application.Quit();
+        }
+    }
+
+    void UpdateRotationWithMouse() {
+        float mouseX = Input.GetAxis("Mouse X");
+        float mouseY = Input.GetAxis("Mouse Y");
+        transform.Rotate(Vector3.up, mouseX * 5f);
+        transform.Rotate(Vector3.right, -mouseY * 5f);
     }
 
     private IEnumerator SwitchToNextChild() {
